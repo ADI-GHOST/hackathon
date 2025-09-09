@@ -1,0 +1,96 @@
+create database portal;
+use portal;
+
+-- Main user tables
+
+CREATE TABLE Admins (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Teachers (
+    teacher_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Students (
+    student_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    batch VARCHAR(50) NOT NULL,
+    INDEX (batch) -- Indexing the batch column for faster lookups
+);
+
+-- Core academic structure tables
+CREATE TABLE Classes (
+    class_id INT AUTO_INCREMENT PRIMARY KEY,
+    class_name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE Subjects (
+    subject_id INT AUTO_INCREMENT PRIMARY KEY,
+    subject_name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE Schedules (
+    schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT,
+    subject_id INT,
+    teacher_id INT,
+    batch VARCHAR(50) NOT NULL,
+    day_of_week VARCHAR(20) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    FOREIGN KEY (class_id) REFERENCES Classes(class_id) ON DELETE SET NULL,
+    FOREIGN KEY (subject_id) REFERENCES Subjects(subject_id) ON DELETE SET NULL,
+    FOREIGN KEY (teacher_id) REFERENCES Teachers(teacher_id) ON DELETE CASCADE
+);
+
+-- Attendance tracking table
+CREATE TABLE Attendance (
+    attendance_id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    schedule_id INT,
+    attendance_date DATE NOT NULL,
+    status ENUM('present', 'absent') NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY (student_id, schedule_id, attendance_date), -- Prevents duplicate entries for the same student, class, and day
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id) REFERENCES Schedules(schedule_id) ON DELETE CASCADE
+);
+INSERT INTO Admins (name, email, password) VALUES ('Admin User', 'admin@example.com', 'admin123');
+
+-- This command creates the new 'Batches' table to store batch information.
+CREATE TABLE Batches (
+    batch_id INT AUTO_INCREMENT PRIMARY KEY,
+    batch_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- These commands insert some initial batch data into the new table.
+-- You can add or remove batches from the Admin Portal after running this.
+INSERT INTO Batches (batch_name) VALUES ('B1'), ('B2'), ('B3'), ('B4'), ('B5'), ('B6');
+select * from teachers;
+INSERT INTO Teachers (name, email, password) VALUES ('Shubham Shubhi', 'shubhamshubhi@tr.com', '123');
+
+ALTER TABLE Students
+ADD COLUMN class_id INT NULL,
+ADD CONSTRAINT fk_students_classes
+FOREIGN KEY (class_id) REFERENCES Classes(class_id);
+
+-- Creates the table with the correct lowercase name
+CREATE TABLE attendance (
+    attendance_id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    schedule_id INT,
+    attendance_date DATE NOT NULL,
+    status ENUM('present', 'absent') NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY (student_id, schedule_id, attendance_date),
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE
+);
