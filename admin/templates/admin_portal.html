@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        :root { font-family: 'Inter', sans-serif; }
+        .tab-active { border-color: #4f46e5; color: #4f46e5; background-color: #eef2ff; }
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .form-input { appearance: none; border-radius: 0.375rem; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; width: 100%; transition: box-shadow 0.15s, border-color 0.15s; }
+        .form-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 1px #4f46e5; }
+        .btn-primary { background-color: #4f46e5; color: white; font-weight: 500; padding: 0.625rem 1rem; border-radius: 0.375rem; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-danger { background-color: #dc2626; color: white; font-weight: 500; padding: 0.25rem 0.75rem; border-radius: 0.375rem; transition: background-color 0.2s; font-size: 0.875rem; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .message { display: none; }
+        .message.visible { display: block; }
+        #batch-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out;
+        }
+        #batch-container.visible {
+            max-height: 100px; /* Adjust as needed */
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+            <a href="/logout" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Logout</a>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-8 border-b border-gray-200">
+            <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8 tab-active" onclick="showSection('create-user', this)">Create User</button>
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8" onclick="showSection('schedule-class', this)">Schedule Class</button>
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8" onclick="showSection('manage-schedules', this)">Manage Schedules</button>
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8" onclick="showSection('manage-classes', this)">Manage Classes</button>
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8" onclick="showSection('manage-subjects', this)">Manage Subjects</button>
+                <button class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-indigo-600 hover:border-gray-300 mr-8" onclick="showSection('manage-batches', this)">Manage Batches</button>
+            </nav>
+        </div>
+
+        <!-- Content Sections -->
+        <main>
+            <div id="create-user" class="content-section active"></div>
+            <div id="schedule-class" class="content-section"></div>
+            <div id="manage-schedules" class="content-section"></div>
+            <div id="manage-classes" class="content-section"></div>
+            <div id="manage-subjects" class="content-section"></div>
+            <div id="manage-batches" class="content-section"></div>
+        </main>
+    </div>
+
+    <script>
+        const BASE_URL = ''; // Keep empty for same-origin requests
+
+        // --- Navigation ---
+        function showSection(sectionId, element) {
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('nav button').forEach(button => button.classList.remove('tab-active'));
+            element.classList.add('tab-active');
+
+            loadSectionContent(sectionId);
+        }
+
+        // --- API Helpers ---
+        async function apiFetch(endpoint) {
+            try {
+                const response = await fetch(`${BASE_URL}${endpoint}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Fetch error from ${endpoint}:`, error);
+                return { success: false, message: 'Failed to load data. Please check the console.' };
+            }
+        }
+
+        async function apiPost(endpoint, data) {
+            try {
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error(`POST error to ${endpoint}:`, error);
+                return { success: false, message: 'A network error occurred. Please try again.' };
+            }
+        }
+
+        function displayMessage(elementId, result) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.textContent = result.message;
+            el.className = `message visible text-sm p-3 rounded-md ${result.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+        }
+        
+        // --- Dropdown Generators ---
+        function generateDropdownOptions(result, placeholder) {
+            if (!result.success || !result.data || result.data.length === 0) return `<option value="">${placeholder}</option>`;
+            return '<option value="">-- Please select --</option>' + result.data.map(item => `<option value="${item.id}">${item.name}</option>`).join('');
+        }
+        
+        // Generates dropdown options where the value is the item's name (for batches)
+        function generateNameValueDropdownOptions(result, placeholder) {
+            if (!result.success || !result.data || result.data.length === 0) return `<option value="">${placeholder}</option>`;
+            return '<option value="">-- Please select --</option>' + result.data.map(item => `<option value="${item.name}">${item.name}</option>`).join('');
+        }
+
+        // --- Content Loaders ---
+        function loadSectionContent(sectionId) {
+            switch(sectionId) {
+                case 'create-user': renderCreateUser(); break;
+                case 'schedule-class': renderScheduleClass(); break;
+                case 'manage-schedules': renderManageSchedules(); break;
+                case 'manage-classes': renderGenericManager('manage-classes', 'Class', '/classes', '/api/manage_classes'); break;
+                case 'manage-subjects': renderGenericManager('manage-subjects', 'Subject', '/subjects', '/api/manage_subjects'); break;
+                case 'manage-batches': renderGenericManager('manage-batches', 'Batch', '/api/batches', '/api/manage_batches'); break;
+            }
+        }
+
+        // --- Render Functions ---
+        async function renderCreateUser() {
+            const container = document.getElementById('create-user');
+            container.innerHTML = `<p class="text-center text-gray-500">Loading form...</p>`;
+            const batchesResult = await apiFetch('/api/batches');
+
+            container.innerHTML = `
+                <div class="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Create New User</h2>
+                    <form id="create-user-form" class="space-y-5">
+                        <div>
+                            <label for="user_type" class="block text-sm font-medium text-gray-700 mb-1">User Type</label>
+                            <select id="user_type" name="user_type" class="form-input">
+                                <option value="student">Student</option>
+                                <option value="teacher">Teacher</option>
+                            </select>
+                        </div>
+                        <div><label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label><input type="text" id="name" name="name" required class="form-input"></div>
+                        <div id="batch-container">
+                            <label for="batch" class="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                            <select id="batch" name="batch" class="form-input">
+                                ${generateNameValueDropdownOptions(batchesResult, 'No batches available')}
+                            </select>
+                        </div>
+                        <div><label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="email" name="email" required class="form-input"></div>
+                        <div><label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" id="password" name="password" required class="form-input"></div>
+                        <button type="submit" class="btn-primary w-full">Create User</button>
+                    </form>
+                    <p id="create-user-message" class="message mt-4 text-center"></p>
+                </div>`;
+            
+            const userTypeSelect = document.getElementById('user_type');
+            const batchContainer = document.getElementById('batch-container');
+            const toggleBatchField = () => {
+                batchContainer.classList.toggle('visible', userTypeSelect.value === 'student');
+            };
+            userTypeSelect.addEventListener('change', toggleBatchField);
+            toggleBatchField();
+
+            document.getElementById('create-user-form').addEventListener('submit', handleFormSubmit);
+        }
+        
+        async function renderScheduleClass() {
+            const container = document.getElementById('schedule-class');
+            container.innerHTML = `<p class="text-center text-gray-500">Loading form...</p>`;
+
+            const [teachers, classes, subjects, batches] = await Promise.all([
+                apiFetch('/teachers'), 
+                apiFetch('/classes'), 
+                apiFetch('/subjects'),
+                apiFetch('/api/batches')
+            ]);
+
+            container.innerHTML = `
+                <div class="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Schedule New Class</h2>
+                    <form id="schedule-class-form" class="space-y-5">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label><select name="teacher_id" required class="form-input">${generateDropdownOptions(teachers, 'No teachers found')}</select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Class</label><select name="class_id" required class="form-input">${generateDropdownOptions(classes, 'No classes found')}</select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Subject</label><select name="subject_id" required class="form-input">${generateDropdownOptions(subjects, 'No subjects found')}</select></div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                            <select name="batch" required class="form-input">
+                                ${generateNameValueDropdownOptions(batches, 'No batches available')}
+                            </select>
+                        </div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Day of Week</label><select name="day_of_week" class="form-input"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label><input type="time" name="start_time" required class="form-input"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">End Time</label><input type="time" name="end_time" required class="form-input"></div>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">Schedule Class</button>
+                    </form>
+                    <p id="schedule-class-message" class="message mt-4 text-center"></p>
+                </div>`;
+            document.getElementById('schedule-class-form').addEventListener('submit', handleFormSubmit);
+        }
+
+        async function renderManageSchedules() {
+            const container = document.getElementById('manage-schedules');
+            const teachersResult = await apiFetch('/teachers');
+            container.innerHTML = `
+                <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm">
+                     <h2 class="text-xl font-semibold text-gray-800 mb-6">Manage Schedules</h2>
+                     <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Teacher</label>
+                        <select id="schedule-teacher-selector" class="form-input">${generateDropdownOptions(teachersResult, 'No teachers found')}</select>
+                     </div>
+                     <p id="manage-schedules-message" class="message mb-4"></p>
+                     <div id="schedule-list-container" class="mt-6 border-t border-gray-200 pt-4"><p class="text-gray-500">Select a teacher to see their schedule.</p></div>
+                </div>`;
+            document.getElementById('schedule-teacher-selector').addEventListener('change', fetchAndRenderSchedules);
+        }
+
+        async function fetchAndRenderSchedules() {
+            const teacherId = document.getElementById('schedule-teacher-selector').value;
+            const container = document.getElementById('schedule-list-container');
+            const messageEl = document.getElementById('manage-schedules-message');
+            messageEl.className = 'message';
+            if (!teacherId) {
+                container.innerHTML = '<p class="text-gray-500">Select a teacher to see their schedule.</p>';
+                return;
+            }
+            container.innerHTML = '<p>Loading...</p>';
+            const result = await apiFetch(`/api/schedules?teacher_id=${teacherId}`);
+            if (result.success && result.data.length > 0) {
+                container.innerHTML = `
+                    <ul class="space-y-3">${result.data.map(item => `
+                        <li class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                            <div>
+                                <p class="font-medium text-gray-800">${item.day_of_week} @ ${item.start_time.slice(0,5)}-${item.end_time.slice(0,5)}</p>
+                                <p class="text-sm text-gray-600">${item.class_name} – ${item.subject_name} <span class="font-semibold">(Batch: ${item.batch})</span></p>
+                            </div>
+                            <button onclick="removeSchedule(${item.schedule_id})" class="btn-danger">Remove</button>
+                        </li>`).join('')}
+                    </ul>`;
+            } else if (result.success) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">This teacher has no classes scheduled.</p>';
+            } else {
+                container.innerHTML = `<p class="text-red-600 text-center py-4">${result.message}</p>`;
+            }
+        }
+
+        async function removeSchedule(scheduleId) {
+            const result = await apiPost('/api/remove_schedule', { schedule_id: scheduleId });
+            displayMessage('manage-schedules-message', result);
+            if (result.success) {
+                fetchAndRenderSchedules();
+            }
+        }
+        
+        async function renderGenericManager(containerId, singularName, fetchEndpoint, postEndpoint) {
+            const pluralName = `${singularName}s`;
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-8 rounded-lg shadow-sm">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Add New ${singularName}</h2>
+                        <form id="add-${singularName.toLowerCase()}-form" class="space-y-4">
+                            <input type="hidden" name="action" value="add">
+                            <div><label class="block text-sm font-medium text-gray-700 mb-1">${singularName} Name</label><input type="text" name="${singularName.toLowerCase()}_name" required class="form-input"></div>
+                            <button type="submit" class="btn-primary w-full">Add ${singularName}</button>
+                        </form>
+                        <p id="manage-${pluralName.toLowerCase()}-message" class="message mt-4"></p>
+                    </div>
+                    <div class="bg-white p-8 rounded-lg shadow-sm">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Existing ${pluralName}</h2>
+                        <div id="${singularName.toLowerCase()}-list"></div>
+                    </div>
+                </div>`;
+
+            const form = document.getElementById(`add-${singularName.toLowerCase()}-form`);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const result = await apiPost(postEndpoint, data);
+                displayMessage(`manage-${pluralName.toLowerCase()}-message`, result);
+                if (result.success) {
+                    form.reset();
+                    fetchAndRenderItems();
+                }
+            });
+            
+            const fetchAndRenderItems = async () => {
+                const listContainer = document.getElementById(`${singularName.toLowerCase()}-list`);
+                const result = await apiFetch(fetchEndpoint);
+                if (result.success && result.data.length > 0) {
+                    listContainer.innerHTML = `<ul class="divide-y divide-gray-200 -mt-2">${result.data.map(item => `
+                        <li class="flex items-center justify-between py-3">
+                            <span class="text-gray-700">${item.name}</span>
+                            <button onclick="removeItem(${item.id}, '${singularName.toLowerCase()}', '${postEndpoint}')" class="btn-danger">Remove</button>
+                        </li>`).join('')}</ul>`;
+                } else {
+                    listContainer.innerHTML = `<p class="text-gray-500">No ${pluralName.toLowerCase()} found.</p>`;
+                }
+            };
+            fetchAndRenderItems();
+        }
+
+        async function removeItem(id, type, endpoint) {
+            const data = { action: 'remove', [`${type}_id`]: id };
+            const result = await apiPost(endpoint, data);
+            displayMessage(`manage-${type}s-message`, result);
+            if (result.success) {
+                // Refresh the list for the current manager view
+                loadSectionContent(`manage-${type}s`);
+            }
+        }
+
+        // --- Global Form Handler ---
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = Object.fromEntries(new FormData(form).entries());
+            let endpoint, messageId;
+
+            if (form.id === 'create-user-form') {
+                endpoint = '/api/create_user';
+                messageId = 'create-user-message';
+            } else if (form.id === 'schedule-class-form') {
+                endpoint = '/api/schedule_class';
+                messageId = 'schedule-class-message';
+            }
+
+            if(endpoint) {
+                const result = await apiPost(endpoint, data);
+                displayMessage(messageId, result);
+                if (result.success) {
+                    form.reset();
+                    if (form.id === 'create-user-form') {
+                        document.getElementById('user_type').dispatchEvent(new Event('change'));
+                    }
+                }
+            }
+        }
+        
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSectionContent('create-user');
+        });
+    </script>
+</body>
+</html>

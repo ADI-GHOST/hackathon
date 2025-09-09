@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom-width: 2px; border-color: #4f46e5; color: #4f46e5; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Login View -->
+    <div id="login-view" class="flex items-center justify-center min-h-screen">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+            <div>
+                <h2 class="text-2xl font-bold text-center text-gray-900">Teacher Portal Login</h2>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="email" class="text-sm font-medium text-gray-700">Email address</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required class="block w-full px-3 py-2 mt-1 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="teacher@example.com">
+                </div>
+                <div>
+                    <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required class="block w-full px-3 py-2 mt-1 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="password">
+                </div>
+                <div>
+                    <button type="submit" class="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Sign in
+                    </button>
+                </div>
+                <p id="login-error" class="text-sm text-center text-red-600"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard View -->
+    <div id="dashboard-view" class="hidden">
+        <nav class="bg-white shadow-md">
+            <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-xl font-bold text-indigo-600">Teacher Portal</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span id="teacher-name" class="mr-4 font-medium text-gray-700"></span>
+                        <button id="logout-btn" class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="p-4 mx-auto max-w-7xl sm:p-6 lg:p-8">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px space-x-8" aria-label="Tabs">
+                    <button id="tab-schedule" class="px-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent whitespace-nowrap hover:text-gray-700 hover:border-gray-300 tab-active">My Schedule</button>
+                    <button id="tab-qrcode" class="px-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent whitespace-nowrap hover:text-gray-700 hover:border-gray-300">Generate QR Code</button>
+                    <button id="tab-attendance" class="px-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent whitespace-nowrap hover:text-gray-700 hover:border-gray-300">View Attendance</button>
+                </nav>
+            </div>
+
+            <!-- Content Panes -->
+            <div id="content-schedule" class="mt-8">
+                <div class="p-6 bg-white rounded-lg shadow">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900">Your Weekly Schedule</h3>
+                    <div id="schedule-container" class="mt-4 overflow-x-auto">
+                        <!-- Schedule will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-qrcode" class="hidden mt-8">
+                 <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+                    <div class="p-6 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900">Generate Attendance QR Code</h3>
+                        <div class="mt-4 space-y-4">
+                            <div>
+                                <label for="class-selector" class="block text-sm font-medium text-gray-700">Select Class for Today</label>
+                                <select id="class-selector" class="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <option>Loading classes...</option>
+                                </select>
+                            </div>
+                            <button id="generate-qr-btn" class="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Generate QR Code</button>
+                        </div>
+                    </div>
+                    <div id="qrcode-display" class="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow">
+                        <div id="qrcode" class="flex items-center justify-center w-56 h-56 border-2 border-dashed rounded-lg">
+                           <span class="text-gray-500">QR code will appear here</span>
+                        </div>
+                        <p id="qrcode-info" class="mt-4 text-sm text-center text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-attendance" class="hidden mt-8">
+                <div class="p-6 bg-white rounded-lg shadow">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900">Attendance Records</h3>
+                    <div class="flex flex-wrap items-end mt-4 space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="w-full md:w-auto">
+                            <label for="attendance-class-selector" class="block text-sm font-medium text-gray-700">Select Class</label>
+                            <select id="attendance-class-selector" class="block w-full py-2 pl-3 pr-10 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option>Loading classes...</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-auto">
+                            <label for="attendance-date" class="block text-sm font-medium text-gray-700">Select Date</label>
+                            <input type="date" id="attendance-date" class="block w-full py-2 pl-3 pr-2 mt-1 text-base border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                         <button id="view-attendance-btn" class="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md md:w-auto hover:bg-indigo-700">View Attendance</button>
+                    </div>
+                    <div id="attendance-table-container" class="mt-6 overflow-x-auto">
+                        <!-- Attendance table will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginView = document.getElementById('login-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            const loginForm = document.getElementById('login-form');
+            const loginError = document.getElementById('login-error');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            const tabs = {
+                schedule: document.getElementById('tab-schedule'),
+                qrcode: document.getElementById('tab-qrcode'),
+                attendance: document.getElementById('tab-attendance')
+            };
+            const contents = {
+                schedule: document.getElementById('content-schedule'),
+                qrcode: document.getElementById('content-qrcode'),
+                attendance: document.getElementById('content-attendance')
+            };
+
+            const qrcodeContainer = document.getElementById('qrcode');
+            const qrcodeInfo = document.getElementById('qrcode-info');
+            const generateQrBtn = document.getElementById('generate-qr-btn');
+            const classSelector = document.getElementById('class-selector');
+            const attendanceClassSelector = document.getElementById('attendance-class-selector');
+            
+            let qrCodeInstance = null;
+
+            // Check session on page load
+            checkSession();
+
+            function checkSession() {
+                fetch('/api/teacher/session')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.logged_in) {
+                            showDashboard(data.teacher);
+                        } else {
+                            showLogin();
+                        }
+                    });
+            }
+
+            function showLogin() {
+                loginView.classList.remove('hidden');
+                dashboardView.classList.add('hidden');
+            }
+
+            function showDashboard(teacher) {
+                loginView.classList.add('hidden');
+                dashboardView.classList.remove('hidden');
+                document.getElementById('teacher-name').textContent = `Welcome, ${teacher.name}`;
+                
+                // Load initial data for the dashboard
+                fetchSchedule();
+                fetchClassesForQrCode();
+                fetchClassesForAttendance();
+
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('attendance-date').value = today;
+            }
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                loginError.textContent = '';
+                const formData = new FormData(loginForm);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch('/teacher/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showDashboard(data.teacher);
+                    } else {
+                        loginError.textContent = data.message || 'Invalid credentials.';
+                    }
+                })
+                .catch(() => {
+                    loginError.textContent = 'An error occurred. Please try again.';
+                });
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                fetch('/teacher/logout', { method: 'POST' })
+                    .then(() => checkSession());
+            });
+
+            // Tab switching logic
+            Object.keys(tabs).forEach(key => {
+                tabs[key].addEventListener('click', () => {
+                    Object.values(tabs).forEach(t => t.classList.remove('tab-active'));
+                    Object.values(contents).forEach(c => c.classList.add('hidden'));
+                    tabs[key].classList.add('tab-active');
+                    contents[key].classList.remove('hidden');
+                });
+            });
+
+            // Fetch and render teacher's schedule
+            async function fetchSchedule() {
+                const scheduleContainer = document.getElementById('schedule-container');
+                scheduleContainer.innerHTML = '<p>Loading schedule...</p>';
+                try {
+                    const response = await fetch('/api/teacher/schedule');
+                    const data = await response.json();
+                    if(data.success) {
+                        renderSchedule(data.data);
+                    } else {
+                        scheduleContainer.innerHTML = `<p class="text-red-500">${data.message}</p>`;
+                    }
+                } catch (error) {
+                    scheduleContainer.innerHTML = '<p class="text-red-500">Failed to load schedule.</p>';
+                }
+            }
+
+            function renderSchedule(scheduleData) {
+                const scheduleContainer = document.getElementById('schedule-container');
+                if (!scheduleData || scheduleData.length === 0) {
+                    scheduleContainer.innerHTML = '<p>Your schedule is empty.</p>';
+                    return;
+                }
+
+                const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                const table = document.createElement('table');
+                table.className = "min-w-full divide-y divide-gray-200";
+                table.innerHTML = `
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Day</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Time</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Class</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Subject</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                `;
+                const tbody = table.querySelector('tbody');
+                
+                days.forEach(day => {
+                    const daySchedule = scheduleData.filter(item => item.day_of_week === day);
+                    if (daySchedule.length > 0) {
+                        daySchedule.sort((a,b) => a.start_time.localeCompare(b.start_time));
+                        daySchedule.forEach((item, index) => {
+                             const row = tbody.insertRow();
+                             if (index === 0) {
+                                const cellDay = row.insertCell();
+                                cellDay.rowSpan = daySchedule.length;
+                                cellDay.textContent = day;
+                                cellDay.className = "px-6 py-4 font-medium text-gray-900 align-top";
+                             }
+                            row.innerHTML += `
+                                <td class="px-6 py-4 whitespace-nowrap">${item.start_time} - ${item.end_time}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">${item.class_name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">${item.subject_name}</td>
+                            `;
+                        });
+                    }
+                });
+
+                scheduleContainer.innerHTML = '';
+                scheduleContainer.appendChild(table);
+            }
+
+            // Fetch classes for dropdowns
+            async function fetchClassesForQrCode() {
+                try {
+                    const response = await fetch('/api/teacher/today_classes');
+                    const data = await response.json();
+                    if(data.success) {
+                        populateClassSelector(classSelector, data.data, true);
+                    } else {
+                        classSelector.innerHTML = `<option>${data.message}</option>`;
+                    }
+                } catch (error) {
+                    classSelector.innerHTML = '<option>Failed to load classes.</option>';
+                }
+            }
+
+            async function fetchClassesForAttendance() {
+                 try {
+                    const response = await fetch('/api/teacher/all_classes');
+                    const data = await response.json();
+                    if(data.success) {
+                        populateClassSelector(attendanceClassSelector, data.data, false);
+                    } else {
+                        attendanceClassSelector.innerHTML = `<option>${data.message}</option>`;
+                    }
+                } catch (error) {
+                    attendanceClassSelector.innerHTML = '<option>Failed to load classes.</option>';
+                }
+            }
+
+            function populateClassSelector(selector, classes, isForQrCode) {
+                selector.innerHTML = '';
+                if (!classes || classes.length === 0) {
+                    selector.innerHTML = `<option value="">${isForQrCode ? 'No classes scheduled for today' : 'No classes found'}</option>`;
+                    return;
+                }
+                selector.innerHTML = `<option value="">Select a class</option>`;
+                classes.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.schedule_id;
+                    option.textContent = `${c.class_name} - ${c.subject_name} (${c.start_time} - ${c.end_time})`;
+                    selector.appendChild(option);
+                });
+            }
+            
+            generateQrBtn.addEventListener('click', () => {
+                const scheduleId = classSelector.value;
+                if (!scheduleId) {
+                    alert('Please select a class.');
+                    return;
+                }
+
+                qrcodeContainer.innerHTML = '';
+                const qrData = {
+                    schedule_id: parseInt(scheduleId),
+                    timestamp: new Date().toISOString()
+                };
+
+                qrCodeInstance = new QRCode(qrcodeContainer, {
+                    text: JSON.stringify(qrData),
+                    width: 224,
+                    height: 224,
+                });
+                
+                const selectedText = classSelector.options[classSelector.selectedIndex].text;
+                qrcodeInfo.textContent = `QR code for: ${selectedText}. Valid for 5 minutes.`;
+            });
+
+            // View Attendance
+            document.getElementById('view-attendance-btn').addEventListener('click', async () => {
+                const scheduleId = document.getElementById('attendance-class-selector').value;
+                const date = document.getElementById('attendance-date').value;
+                const container = document.getElementById('attendance-table-container');
+
+                if(!scheduleId || !date) {
+                    alert('Please select a class and a date.');
+                    return;
+                }
+
+                container.innerHTML = '<p>Loading attendance records...</p>';
+                try {
+                    const response = await fetch(`/api/teacher/attendance?schedule_id=${scheduleId}&date=${date}`);
+                    const data = await response.json();
+
+                    if(data.success) {
+                        renderAttendanceTable(data.data);
+                    } else {
+                         container.innerHTML = `<p class="text-red-500">${data.message}</p>`;
+                    }
+                } catch (e) {
+                     container.innerHTML = `<p class="text-red-500">Failed to load attendance records.</p>`;
+                }
+            });
+
+            function renderAttendanceTable(attendanceData) {
+                const container = document.getElementById('attendance-table-container');
+                if(!attendanceData || attendanceData.length === 0) {
+                    container.innerHTML = '<p>No attendance records found for this class on this date.</p>';
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = "min-w-full divide-y divide-gray-200";
+                table.innerHTML = `
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Student Name</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Student Email</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Status</th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Time Marked</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    </tbody>`;
+
+                const tbody = table.querySelector('tbody');
+                attendanceData.forEach(record => {
+                    const row = tbody.insertRow();
+                    const markedTime = record.timestamp ? new Date(record.timestamp).toLocaleTimeString() : 'N/A';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">${record.student_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${record.student_email}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 text-xs font-semibold leading-5 ${record.status === 'present' ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'} rounded-full">
+                                ${record.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">${markedTime}</td>
+                    `;
+                });
+                container.innerHTML = '';
+                container.appendChild(table);
+            }
+
+        });
+    </script>
+</body>
+</html>
